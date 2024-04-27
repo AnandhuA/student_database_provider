@@ -1,43 +1,40 @@
+// ignore_for_file: must_be_immutable
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:student_database/Db/function.dart';
 import 'package:student_database/Db/model.dart';
-import 'package:student_database/ProfilePage.dart';
+import 'package:student_database/provider/provider.dart';
 
-class UpdateStudent extends StatefulWidget {
+class UpdateStudent extends StatelessWidget {
   // ignore: prefer_typing_uninitialized_variables
-  final index;
-  const UpdateStudent({super.key, required this.index});
+  final StudentModel student;
+  UpdateStudent({super.key, required this.student});
 
-  @override
-  State<UpdateStudent> createState() => _UpdateStudentState();
-}
-
-class _UpdateStudentState extends State<UpdateStudent> {
   final formkey = GlobalKey<FormState>();
+
   TextEditingController name = TextEditingController();
+
   TextEditingController email = TextEditingController();
+
   TextEditingController mobile = TextEditingController();
+
   late XFile file;
+
   String selectfile = "";
-
-  late StudentModel student;
-  @override
-  void initState() {
-    student = studentList[widget.index];
-    name.text = student.name;
-    email.text = student.email;
-    mobile.text = student.mobile;
-    selectfile = student.image;
-
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<AddstudentProvider>(context, listen: false);
+
+    name.text = student.name;
+    email.text = student.email;
+    mobile.text = student.mobile;
+    provider.addImage(student.image);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Details"),
@@ -50,49 +47,54 @@ class _UpdateStudentState extends State<UpdateStudent> {
               key: formkey,
               child: Column(
                 children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(100),
-                    onTap: () {
-                      showModalBottomSheet(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return SizedBox(
-                              height: 150,
-                              child: Column(
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.photo_camera),
-                                    title: const Text("Camera"),
-                                    onTap: () {
-                                      ontap(context, ImageSource.camera);
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.photo_library),
-                                    title: const Text("Gallery"),
-                                    onTap: () {
-                                      ontap(context, ImageSource.gallery);
-                                      Navigator.of(context).pop();
-                                    },
-                                  )
-                                ],
-                              ),
-                            );
-                          });
-                    },
-                    child: selectfile == ""
-                        ? CircleAvatar(
-                            radius: 100,
-                            child: Lottie.asset(
-                                "assets/animations/Animation - 1713885222787.json"),
-                          )
-                        : CircleAvatar(
-                            radius: 100,
-                            backgroundImage: FileImage(
-                              File(selectfile),
-                            ),
+                  Consumer<AddstudentProvider>(
+                    builder: (contex, addstudentProvider, _) {
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(100),
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return SizedBox(
+                                height: 150,
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_camera),
+                                      title: const Text("Camera"),
+                                      onTap: () async {
+                                        file = (await ImagePicker().pickImage(
+                                            source: ImageSource.camera))!;
+                                        addstudentProvider
+                                            .selectImage(file.path);
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_library),
+                                      title: const Text("Gallery"),
+                                      onTap: () async {
+                                        file = (await ImagePicker().pickImage(
+                                            source: ImageSource.gallery))!;
+                                        addstudentProvider
+                                            .selectImage(file.path);
+                                        Navigator.of(context).pop();
+                                      },
+                                    )
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: CircleAvatar(
+                          radius: 100,
+                          backgroundImage: FileImage(
+                            File(addstudentProvider.profilePicturePath!),
                           ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
@@ -174,18 +176,21 @@ class _UpdateStudentState extends State<UpdateStudent> {
                         )),
                     onPressed: () {
                       if (formkey.currentState!.validate()) {
-                        student.name = name.text;
-                        student.email = email.text;
-                        student.mobile = mobile.text;
-                        student.image = selectfile;
-                        updateimage(student);
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Profile(
-                                index: widget.index,
-                              ),
-                            ));
+                        // student.name = name.text;
+                        // student.email = email.text;
+                        // student.mobile = mobile.text;
+                        // student.image = provider.profilePicturePath!;
+
+                        StudentModel val = StudentModel(
+                          name: name.text,
+                          email: email.text,
+                          mobile: mobile.text,
+                          image: provider.profilePicturePath!,
+                          id: student.id,
+                        );
+
+                        update(val);
+                        Navigator.pop(context);
                       }
                     },
                     child: const Text(
@@ -200,12 +205,5 @@ class _UpdateStudentState extends State<UpdateStudent> {
         ]),
       ),
     );
-  }
-
-  ontap(ctx, ImageSource cam) async {
-    file = (await ImagePicker().pickImage(source: cam))!;
-    setState(() {
-      selectfile = file.path;
-    });
   }
 }

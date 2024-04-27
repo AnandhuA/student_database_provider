@@ -1,30 +1,32 @@
 // ignore: file_names
-// ignore_for_file: file_names, duplicate_ignore
+// ignore_for_file: file_names, duplicate_ignore, must_be_immutable
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:student_database/Db/function.dart';
 import 'package:student_database/Db/model.dart';
+import 'package:student_database/provider/provider.dart';
 
-class AddStudent extends StatefulWidget {
-  const AddStudent({super.key});
+class AddStudent extends StatelessWidget {
+  AddStudent({super.key});
 
-  @override
-  State<AddStudent> createState() => _AddStudentState();
-}
-
-class _AddStudentState extends State<AddStudent> {
   final formkey = GlobalKey<FormState>();
+
   TextEditingController name = TextEditingController();
+
   TextEditingController email = TextEditingController();
+
   TextEditingController mobile = TextEditingController();
+
   late XFile file;
-  String selectfile = "";
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<AddstudentProvider>(context, listen: false);
+    provider.clearImg();
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add Details"),
@@ -38,49 +40,60 @@ class _AddStudentState extends State<AddStudent> {
               key: formkey,
               child: Column(
                 children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(100),
-                    onTap: () {
-                      showModalBottomSheet(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return SizedBox(
-                              height: 150,
-                              child: Column(
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.photo_camera),
-                                    title: const Text("Camera"),
-                                    onTap: () {
-                                      ontap(context, ImageSource.camera);
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.photo_library),
-                                    title: const Text("Gallery"),
-                                    onTap: () {
-                                      ontap(context, ImageSource.gallery);
-                                      Navigator.of(context).pop();
-                                    },
-                                  )
-                                ],
+                  Consumer<AddstudentProvider>(
+                    builder: (contex, addstudentProvider, _) {
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(100),
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return SizedBox(
+                                height: 150,
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_camera),
+                                      title: const Text("Camera"),
+                                      onTap: () async {
+                                        file = (await ImagePicker().pickImage(
+                                            source: ImageSource.camera))!;
+                                        addstudentProvider
+                                            .selectImage(file.path);
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.photo_library),
+                                      title: const Text("Gallery"),
+                                      onTap: () async {
+                                        file = (await ImagePicker().pickImage(
+                                            source: ImageSource.gallery))!;
+                                        addstudentProvider
+                                            .selectImage(file.path);
+                                        Navigator.of(context).pop();
+                                      },
+                                    )
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: addstudentProvider.profilePicturePath == null
+                            ? CircleAvatar(
+                                radius: 100,
+                                child: Lottie.asset(
+                                    "assets/animations/Animation - 1713885222787.json"),
+                              )
+                            : CircleAvatar(
+                                radius: 100,
+                                backgroundImage: FileImage(
+                                  File(addstudentProvider.profilePicturePath!),
+                                ),
                               ),
-                            );
-                          });
+                      );
                     },
-                    child: selectfile == ""
-                        ? CircleAvatar(
-                            radius: 100,
-                            child: Lottie.asset(
-                                "assets/animations/Animation - 1713885222787.json"),
-                          )
-                        : CircleAvatar(
-                            radius: 100,
-                            backgroundImage: FileImage(
-                              File(selectfile),
-                            ),
-                          ),
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
@@ -161,7 +174,7 @@ class _AddStudentState extends State<AddStudent> {
                           borderRadius: BorderRadius.circular(30),
                         )),
                     onPressed: () {
-                      addbutton(context);
+                      addbutton(context, provider);
                     },
                     child: const Text(
                       "Submit",
@@ -177,32 +190,25 @@ class _AddStudentState extends State<AddStudent> {
     );
   }
 
-  addbutton(context) async {
-    final student = StudentModel(
-        name: name.text,
-        email: email.text,
-        mobile: mobile.text,
-        image: selectfile);
-    if (selectfile == "") {
+  addbutton(context, provider) async {
+    if (provider.profilePicturePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Add photo"),
         backgroundColor: Colors.red,
       ));
     } else {
+      final student = StudentModel(
+          id: DateTime.now().microsecondsSinceEpoch,
+          name: name.text,
+          email: email.text,
+          mobile: mobile.text,
+          image: provider.profilePicturePath);
       if (formkey.currentState!.validate()) {
         addStudent(student);
-        await getStudents();
-        Navigator.pushNamedAndRemoveUntil(
-            context, "HomePage", (route) => false);
+        provider.clearImg();
+        // await getStudents();
+        Navigator.pop(context);
       }
     }
-  }
-
-  ontap(ctx, ImageSource cam) async {
-    file = (await ImagePicker().pickImage(source: cam))!;
-
-    setState(() {
-      selectfile = file.path;
-    });
   }
 }

@@ -1,8 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:student_database/Db/model.dart';
 
-List<StudentModel> studentList = [];
-
 late Database db;
 
 Future<void> dataBase() async {
@@ -16,13 +14,15 @@ Future<void> dataBase() async {
   );
 }
 
-Future<void> getStudents() async {
+Future<List> getStudents() async {
   final values = await db.rawQuery('SELECT * FROM student');
-  studentList.clear();
+  List<StudentModel> studentList = [];
+
   for (var map in values) {
     final student = StudentModel.fromMap(map);
     studentList.add(student);
   }
+  return studentList;
 }
 
 void addStudent(StudentModel val) async {
@@ -31,11 +31,11 @@ void addStudent(StudentModel val) async {
       [val.name, val.mobile, val.email, val.image]);
 }
 
-void deleteStudent(StudentModel id) {
+deleteStudent(StudentModel id) {
   db.rawDelete("DELETE FROM student WHERE id =?", [id.id]);
 }
 
-void updateimage(StudentModel val) async {
+update(StudentModel val) async {
   await db.rawUpdate(
       'UPDATE student SET name = ? ,mobile = ? ,email = ?,image =? WHERE id = ?',
       [val.name, val.mobile, val.email, val.image, val.id]);

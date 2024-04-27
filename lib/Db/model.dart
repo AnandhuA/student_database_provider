@@ -1,5 +1,5 @@
 class StudentModel {
-  int? id;
+  int id;
   String name;
   String email;
   String mobile;
@@ -10,7 +10,7 @@ class StudentModel {
       required this.email,
       required this.mobile,
       required this.image,
-      this.id});
+     required this.id});
 
   static StudentModel fromMap(Map<String, Object?> map) {
     final id = map['id'] as int;

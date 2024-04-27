@@ -3,32 +3,35 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:student_database/Db/function.dart';
+import 'package:student_database/Db/model.dart';
 import 'package:student_database/UpdateStudent.dart';
 
-class Profile extends StatefulWidget {
-  final int index;
-  const Profile({super.key, required this.index});
+class Profile extends StatelessWidget {
+  final StudentModel student;
+  const Profile({super.key, required this.student});
 
-  @override
-  State<Profile> createState() => _ProfileState();
-}
-
-class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
-    final student = studentList[widget.index];
     return Scaffold(
       appBar: AppBar(
         title: const Text("Profile"),
         actions: [
           IconButton(
-            onPressed: () => Navigator.of(context).pushReplacement(
+            onPressed: () => Navigator.push(
+              context,
               MaterialPageRoute(
                 builder: (context) => UpdateStudent(
-                  index: widget.index,
+                  student: student,
                 ),
               ),
-            ),
+            ).then((_) => Navigator.pop(context)),
+            // onPressed: () => Navigator.of(context).pushReplacement(
+            //   MaterialPageRoute(
+            //     builder: (context) => UpdateStudent(
+            //       index: widget.index,
+            //     ),
+            //   ),
+
             icon: const Icon(Icons.edit),
           ),
           IconButton(
@@ -47,11 +50,9 @@ class _ProfileState extends State<Profile> {
                           ),
                           TextButton(
                               onPressed: () async {
-                                deleteStudent(student);
-                                await getStudents();
-
-                                Navigator.pushNamedAndRemoveUntil(
-                                    context, "HomePage", (route) => false);
+                                await deleteStudent(student);
+                                Navigator.pop(context);
+                                Navigator.pop(context);
                               },
                               child: const Text("Yes"))
                         ]);
